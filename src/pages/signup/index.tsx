@@ -72,7 +72,7 @@ export default function SignUp() {
               onChange={(e) => setPassword(e.target.value)}
             />
             <Button type="submit" Loading={loading}>
-              Acessar
+              Cadastrar
             </Button>
           </form>
           <h3 className={styles.text}>
