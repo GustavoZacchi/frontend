@@ -46,7 +46,7 @@ export default function Produt({ categoryList }: CategoryProps) {
 
       data.append("category_id", categories[categorySelected].id);
       data.append("file", imageAvatar);
-
+      console.log(data);
       const apiClient = setupAPIClient();
       await apiClient.post("./product", data);
 

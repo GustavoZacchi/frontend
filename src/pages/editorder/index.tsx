@@ -1,27 +1,12 @@
 import { useState } from "react";
-import { canSSRAuth } from "../../utils/canSSRAuth";
+import { canSSRAuth } from "@/utils/canSSRAuth";
 import Head from "next/head";
 import styles from "./styles.module.scss";
-
-import { FiRefreshCcw } from "react-icons/fi";
-
-import { setupAPIClient } from "../../services/api";
-
-import { ModalOrder } from "../../components/ModalOrder";
-
+import { setupAPIClient } from "@/services/api";
+import { toast } from "react-toastify";
 import Modal from "react-modal";
-
-type OrderProps = {
-  id: string;
-  table: string | number;
-  status: boolean;
-  draft: boolean;
-  name: string | null;
-};
-
-interface HomeProps {
-  orders: OrderProps[];
-}
+import { ModalAddItems } from "@/components/ModalAddItems";
+import { FiRefreshCcw } from "react-icons/fi";
 
 export type OrderItemProps = {
   id: string;
@@ -43,10 +28,21 @@ export type OrderItemProps = {
   };
 };
 
-export default function Dashboard({ orders }: HomeProps) {
-  const [orderList, setOrderList] = useState(orders || []);
+type OrderProps = {
+  id: string;
+  table: string | number;
+  status: boolean;
+  draft: boolean;
+  name: string | null;
+};
 
-  const [modalItem, setModalItem] = useState<OrderItemProps[]>();
+interface HomeProps {
+  orders: OrderProps[];
+}
+
+export default function EditOrder({ orders }: HomeProps) {
+  const [orderList, setOrderList] = useState(orders || []);
+  const [modalOrder, setModalOrder] = useState<OrderItemProps[] | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   function handleCloseModal() {
@@ -62,28 +58,34 @@ export default function Dashboard({ orders }: HomeProps) {
       },
     });
 
-    setModalItem(response.data);
+    setModalOrder(response.data);
     setModalVisible(true);
   }
 
-  async function handleFinishItem(id: string) {
+  async function handleOpenOrder(id: string) {
     const apiClient = setupAPIClient();
-    await apiClient.put("/order/finish", {
+    await apiClient.put("/order/update", {
       order_id: id,
     });
 
     const response = await apiClient.get("/orders");
-
     setOrderList(response.data);
     setModalVisible(false);
   }
 
   async function handleRefreshOrders() {
     const apiClient = setupAPIClient();
+    const [draftOrdersResponse, allOrdersResponse] = await Promise.all([
+      apiClient.get("/orders/draft"),
+      apiClient.get("/orders"),
+    ]);
 
-    const response = await apiClient.get("/orders");
-    setOrderList(response.data);
-    console.log(orderList);
+    const combinedOrders = [
+      ...draftOrdersResponse.data,
+      ...allOrdersResponse.data,
+    ];
+
+    setOrderList(combinedOrders);
   }
 
   Modal.setAppElement("#__next");
@@ -91,7 +93,7 @@ export default function Dashboard({ orders }: HomeProps) {
   return (
     <>
       <Head>
-        <title>Painel - Sujeito Pizzaria</title>
+        <title>Sal&Brasa | Painel</title>
       </Head>
       <div>
         <main className={styles.container}>
@@ -110,22 +112,30 @@ export default function Dashboard({ orders }: HomeProps) {
             )}
 
             {orderList.map((item) => (
-              <section key={item.id} className={styles.orderItem}>
+              <section
+                key={item.id}
+                className={`${styles.orderItem} ${
+                  item.draft ? styles.draft : ""
+                }`}
+              >
                 <button onClick={() => handleOpenModalView(item.id)}>
                   <div className={styles.tag}></div>
-                  <span>Mesa {item.table}</span>
+                  <span>
+                    Mesa {item.table} | Cliente {item.name}
+                  </span>
+                  <span></span>
                 </button>
               </section>
             ))}
           </article>
         </main>
 
-        {modalVisible && (
-          <ModalOrder
+        {modalVisible && modalOrder && (
+          <ModalAddItems
             isOpen={modalVisible}
             onRequestClose={handleCloseModal}
-            order={modalItem}
-            handleFinishOrder={handleFinishItem}
+            order={modalOrder}
+            handleOpenOrder={handleOpenOrder}
           />
         )}
       </div>
@@ -135,13 +145,19 @@ export default function Dashboard({ orders }: HomeProps) {
 
 export const getServerSideProps = canSSRAuth(async (ctx) => {
   const apiClient = setupAPIClient(ctx);
+  const [draftOrdersResponse, allOrdersResponse] = await Promise.all([
+    apiClient.get("/orders/draft"),
+    apiClient.get("/orders"),
+  ]);
 
-  const response = await apiClient.get("/orders");
-  //console.log(response.data);
+  const combinedOrders = [
+    ...draftOrdersResponse.data,
+    ...allOrdersResponse.data,
+  ];
 
   return {
     props: {
-      orders: response.data,
+      orders: combinedOrders,
     },
   };
 });

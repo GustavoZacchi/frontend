@@ -17,14 +17,18 @@ export default function Header() {
         </Link>
 
         <nav className={styles.menuNav}>
-          <Link href="/category" legacyBehavior>
-            <a>Categoria</a>
+          <Link href="/order" legacyBehavior>
+            <a>Abrir pedido</a>
           </Link>
-
           <Link href="/product" legacyBehavior>
             <a>Cardapio</a>
           </Link>
-
+          <Link href="/category" legacyBehavior>
+            <a>Categoria</a>
+          </Link>
+          <Link href="/editorder" legacyBehavior>
+            <a>Editar pedido</a>
+          </Link>
           <button onClick={signOut}>
             <FiLogOut color="#FFF" size={24} />
           </button>
